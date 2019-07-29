@@ -882,7 +882,19 @@ CriteriaProcessor.prototype.sort = function(options) {
 
   _.each(keys, function(key) {
     var direction = options[key] === 1 ? 'ASC' : 'DESC';
-    self.queryString += utils.escapeName(self.currentTable, self.escapeCharacter, self.schemaName) + '.' + utils.escapeName(key, self.escapeCharacter) + ' ' + direction + ', ';
+    if(key.indexOf('.') === -1)
+      self.queryString += utils.escapeName(self.currentTable, self.escapeCharacter, self.schemaName) + '.' + utils.escapeName(key, self.escapeCharacter) + ' ' + direction + ', ';
+    else{
+        var splitted =  key.split('.');
+        var sortAttr = splitted.pop();
+        var modelAttr = splitted.pop();
+        var tableName = _.find(_.keys(self.schema), function(tableName){
+            return self.schema[tableName].identity === self.currentSchema[modelAttr].references;
+        });
+        var modelAttributes = self.schema[tableName].attributes;
+        var columnName = modelAttributes[sortAttr].columnName;
+        self.queryString += utils.escapeName(utils.populationAlias(modelAttr), self.escapeCharacter, self.schemaName) + '.' + utils.escapeName(columnName, self.escapeCharacter) + ' ' + direction + ', ';
+    }
   });
 
   // Remove trailing comma
